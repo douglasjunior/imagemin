@@ -36,17 +36,13 @@ const handleFile = (input, output, opts) => fsP.readFile(input).then(data => {
 				.then(() => fsP.writeFile(ret.path, ret.data))
 				.then(() => ret);
 		})
-		.catch(err => {
-			err.message = `Error in file: ${input}\n\n${err.message}`;
-			throw err;
+		.catch(error => {
+			error.message = `Error in file: ${input}\n\n${error.message}`;
+			throw error;
 		});
 });
 
 module.exports = (input, output, opts) => {
-	if (!Array.isArray(input)) {
-		return Promise.reject(new TypeError(`Expected an \`Array\`, got \`${typeof input}\``));
-	}
-
 	if (typeof output === 'object') {
 		opts = output;
 		output = null;
@@ -55,7 +51,15 @@ module.exports = (input, output, opts) => {
 	opts = Object.assign({plugins: []}, opts);
 	opts.plugins = opts.use || opts.plugins;
 
-	return globby(input, {onlyFiles: true}).then(paths => Promise.all(paths.map(x => handleFile(x, output, opts))));
+	if (Array.isArray(input)) {
+		return globby(input, {onlyFiles: true}).then(paths => Promise.all(paths.map(x => handleFile(x, output, opts))));
+	}
+
+	if (typeof input === 'string') {
+		return handleFile(input, output, opts);
+	}
+
+	return Promise.reject(new TypeError(`Expected an \`Array<string>\` or \`string\`, got \`${typeof input}\``));
 };
 
 module.exports.buffer = (input, opts) => {
